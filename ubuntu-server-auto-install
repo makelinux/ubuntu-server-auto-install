@@ -1,0 +1,130 @@
+#!/bin/bash
+
+ubuntu-release()
+{
+	rel=http://releases.ubuntu.com/$1
+	echo $rel/$(curl --silent $rel/MD5SUMS | \grep -o 'ubuntu-.*-server-amd64.iso')
+}
+
+ubuntu-server-auto-install()
+{
+	all=($(wget -O- releases.ubuntu.com -q | perl -ne '/Ubuntu (\d+.\d+)/ && print "$1\n"' | sort -Vu))
+	if [ "$1" == latest ]; then
+		iso_url=$(ubuntu-release ${all[-1]})
+	else if [ -z "$*" ]; then
+		echo releases.ubuntu.com has ${all[*]}
+		read -p "use version > " -e -i "${all[-1]}" v
+		[ "$v" ] || v=${all[-1]}
+		iso_url=$(ubuntu-release $v)
+	else if expr match "${1}" "^http" > /dev/null; then
+		iso_url="$1"
+	else if expr match "$1" "[0-9]\+.[0-9]\+$" > /dev/null; then
+			iso_url=$(ubuntu-release $1)
+		else
+			iso_url="$1"
+		fi
+	fi
+	fi
+	fi
+
+	iso_base=$(basename $iso_url)
+	base=$(basename $iso_url .iso)
+	iso=$(find ~/Downloads/ -name "$iso_base")
+	if [ ! -e "$iso" ]; then
+		wget -nc $iso_url -P ~/Downloads || return
+		iso=~/Downloads/$iso_base
+	fi
+	# TODO: use mktemp -d
+	mnt=$(mktemp -d mount.XXX)
+	sudo mkdir -p $mnt
+	sudo mount $iso $mnt -o user,ro
+	cat $mnt/.disk/*info
+	echo
+	read a b c < $mnt/.disk/*info
+	auto=${base}-auto-install
+	if [ ! -e $auto ]; then
+		cp -a $mnt $auto
+		chmod -R +w $auto
+	fi
+	sudo umount $mnt
+	kickstart-cfg $auto
+	cat >> $auto/ks.cfg <<-EOF
+	%post --nochroot
+	mkdir -p /target/home/$USER/.ssh/
+	echo $(cat ~/.ssh/id_rsa.pub) >> /target/home/$USER/.ssh/authorized_keys
+	chown -R $USER /target/home/$USER/.ssh/
+	setv() { sed -i "s/^\(\$2=\).*/\1\$3/" \$1; }
+	cd /target/etc/default
+	setv grub GRUB_CMDLINE_LINUX_DEFAULT ""
+	cd -
+	chroot /target update-grub
+	%end
+	EOF
+	mkisofs -q -disable-deep-relocation -rational-rock -cache-inodes -joliet \
+		-full-iso9660-filenames -no-emul-boot -boot-load-size 4 -boot-info-table \
+		-eltorito-boot isolinux/isolinux.bin -eltorito-catalog isolinux/boot.cat \
+		-o $auto.iso $auto
+	rm -rf $mnt $auto
+	echo Created $auto.iso
+	echo Run test installation with:
+	echo qemu-img create -f qcow2 $auto.qcow2 10G
+	echo qemu-system-x86_64 -smp 2 -enable-kvm -m 4G --cdrom $auto.iso $auto.qcow2
+	# References:
+	# http://askubuntu.com/questions/122505/how-do-i-create-a-completely-unattended-install-of-ubuntu
+	# https://help.ubuntu.com/lts/installation-guide/i386/ch04s06.html
+	# https://help.ubuntu.com/community/KickstartCompatibility
+}
+
+kickstart-cfg()
+{
+	echo en > $1/isolinux/lang
+	cat > $1/isolinux/isolinux.cfg <<- EOF
+		default install
+		label install
+		  menu label ^Install Ubuntu Server
+		  kernel /install/vmlinuz
+		  append file=/cdrom/preseed/ubuntu-server.seed initrd=/install/initrd.gz ks=cdrom:/ks.cfg preseed/file=/cdrom/ks.preseed --
+	EOF
+	cat > $1/ks.cfg <<- EOF
+		lang en_US.UTF-8
+		keyboard us
+		timezone $(cat /etc/timezone)
+		rootpw --disabled
+		user $USER --fullname $USER --password $USER
+		text
+		install
+		cdrom
+		bootloader --location=mbr
+		zerombr yes
+		clearpart --all --initlabel
+		auth --useshadow --enablemd5
+		firewall --disabled
+		skipx
+		reboot
+	EOF
+	cat > $1/ks.preseed <<-EOF
+		d-i user-setup/allow-password-weak boolean true
+		d-i partman/confirm boolean true
+		d-i partman-partitioning/confirm_write_new_label boolean true
+		d-i partman/choose_partition select finish
+		d-i partman/confirm_nooverwrite boolean true
+		d-i pkgsel/include string
+		d-i pkgsel/include string openssh-server
+		#d-i pkgsel/include string openssh-server rabbitmq-server qemu-kvm libvirt-bin
+	EOF
+}
+
+ubuntu-server-auto-install "$@"
+exit
+if expr match "${1}" "^http"; then
+	ubuntu-server-auto-install "$@"
+else
+
+	if [ -n "$*" ]; then
+		eval "$*" # execute arguments
+	else
+		if [ `which "$0"` = "$SHELL" ]; then
+			echo Function ubuntu-server-auto-install is loaded into the shell environment
+		fi
+	fi
+fi
