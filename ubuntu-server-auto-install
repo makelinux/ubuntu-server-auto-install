@@ -60,10 +60,15 @@ ubuntu-server-auto-install()
 	chroot /target update-grub
 	%end
 	EOF
-	mkisofs -q -disable-deep-relocation -rational-rock -cache-inodes -joliet \
-		-full-iso9660-filenames -no-emul-boot -boot-load-size 4 -boot-info-table \
-		-eltorito-boot isolinux/isolinux.bin -eltorito-catalog isolinux/boot.cat \
-		-o $auto.iso $auto
+	xorriso -as mkisofs -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+		-c isolinux/boot.cat -b isolinux/isolinux.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		-eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
+		-isohybrid-gpt-basdat -o $auto.iso $auto
+	#mkisofs -q -disable-deep-relocation -rational-rock -cache-inodes -joliet \
+	#	-full-iso9660-filenames -no-emul-boot -boot-load-size 4 -boot-info-table \
+	#	-eltorito-boot isolinux/isolinux.bin -eltorito-catalog isolinux/boot.cat \
+	#	-o $auto.iso $auto
 	rm -rf $mnt $auto
 	echo Created $auto.iso
 	echo Run test installation with:
@@ -84,6 +89,28 @@ kickstart-cfg()
 		  menu label ^Install Ubuntu Server
 		  kernel /install/vmlinuz
 		  append file=/cdrom/preseed/ubuntu-server.seed initrd=/install/initrd.gz ks=cdrom:/ks.cfg preseed/file=/cdrom/ks.preseed --
+	EOF
+	# add uefi support
+	cat > $1/boot/grub/grub.cfg <<- EOF
+
+		if loadfont /boot/grub/font.pf2 ; then
+		  set gfxmode=auto
+		  insmod efi_gop
+		  insmod efi_uga
+		  insmod gfxterm
+		  terminal_output gfxterm
+		fi
+
+		set default=0
+		set timeout=1
+		set menu_color_normal=white/black
+		set menu_color_highlight=black/light-gray
+		menuentry "Automated Install of Ubuntu Server" {
+		  set gfxpayload=keep
+		  linux /install/vmlinuz  file=/cdrom/preseed/ubuntu-server.seed ks=cdrom:/ks.cfg preseed/file=/cdrom/ks.preseed ---
+		  initrd /install/initrd.gz
+		}
+		}
 	EOF
 	cat > $1/ks.cfg <<- EOF
 		lang en_US.UTF-8
