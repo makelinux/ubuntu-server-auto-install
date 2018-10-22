@@ -1,14 +1,15 @@
 # ubuntu-server-auto-install
 
-**_PLEASE NOTE: I did not create the base version of this script, nor do I take credit. I made a less functional version building off of the wonderful work by [makelinux](https://github.com/makelinux/ubuntu-server-auto-install) to fit my needs._**
-
 Creates an Ubuntu Server unattended installation ISO
 
-Tested in Ubuntu Server version 16.04, 18.04
+Tested with Ubuntu Server 14.04, 16.04, 17.10, 18.04 and 18.10
 
-_This was originally designed to work with more than just 16.04/18.04, but I have no need for backwards compatibility. I am leaving the functionality to download older server versions, however I cannot say they will work, and in fact I presume they do not work._
+## Prerequisites
 
-Features:
+* Need the isohdpfx.bin from isolinux. To get it, use `sudo apt install isolinux`
+* Need 'xorriso' installed. To get it, use `sudo apt install xorriso -y`
+
+## Features
 
 * Minimal interaction
 * Downloads available Ubuntu server release from releases.ubuntu.com
@@ -21,10 +22,10 @@ Features:
 * Short - about 100 lines of code, easy modifiable
 * Helps to run installation with qemu
 * Suitable for batch installation
-* UEFI & MBR Boot Options
-  * _Works great with Hyper-V Gen1 and Gen2 VMs!_
+* Works with both UEFI & MBR Boot Options
+  * _Works great with Hyper-V Gen1 and Gen2 VMs! (If using Gen2, set Secure Boot Template to "Microsoft UEFI Certificate Authority"_
 
-Interface:
+## Interface
 
 * No arguments - interactive mode. The program requestes desired version XX.YY.
 * Argument - XX.YY of Ubuntu server version. The program finds the third release digit automatically.
@@ -34,12 +35,8 @@ Interface:
 * Argument - name for iso image. Program will search for the file in directory ~/Downloads
 * Output - file ubuntu-XX.YY.ZZ-server-amd64-auto-install.iso
 
-Prerequisites:
+## Limitations
 
-* Need the isohdpfx.bin from isolinux. To get it, use `sudo apt install isolinux`
-* Need 'xorriso' installed. To get it, use `sudo apt install xorriso -y`
-
-Limitations:
-
-* Doesn't work with Ubuntu desktop
+* Doesn't work with Ubuntu desktop ISOs
 * May or may not work with other versions of Ubuntu Server
+  * _Does not work with Ubuntu Server 12.04_
