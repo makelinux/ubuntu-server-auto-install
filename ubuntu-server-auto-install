@@ -2,8 +2,14 @@
 
 ubuntu-release()
 {
-	rel=http://releases.ubuntu.com/$1
-	echo $rel/$(curl --silent $rel/MD5SUMS | \grep -o 'ubuntu-.*-server-amd64.iso')
+	# 18.04 and later support
+	if expr match "$1" ".*18..*" > /dev/null; then
+        rel=http://cdimage.ubuntu.com/releases/$1/release
+		echo $rel/$(curl --silent $rel/MD5SUMS | \grep -o 'ubuntu-.*-server-amd64.iso')
+    else
+		rel=http://releases.ubuntu.com/$1
+		echo $rel/$(curl --silent $rel/MD5SUMS | \grep -o 'ubuntu-.*-server-amd64.iso')
+	fi
 }
 
 ubuntu-server-auto-install()

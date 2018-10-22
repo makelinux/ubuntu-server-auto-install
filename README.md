@@ -2,9 +2,11 @@
 
 **_PLEASE NOTE: I did not create the base version of this script, nor do I take credit. I made a less functional version building off of the wonderful work by [makelinux](https://github.com/makelinux/ubuntu-server-auto-install) to fit my needs._**
 
-Creates an Ubuntu Server 16.04 unattended installation ISO
+Creates an Ubuntu Server unattended installation ISO
 
-_This was originally designed to work with more than just 16.04, but I have no need for backwards compatibility. I am leaving the functionality to download older server versions, however I cannot say they will work, and in fact I presume they do not work._
+Tested in Ubuntu Server version 16.04, 18.04
+
+_This was originally designed to work with more than just 16.04/18.04, but I have no need for backwards compatibility. I am leaving the functionality to download older server versions, however I cannot say they will work, and in fact I presume they do not work._
 
 Features:
 
