@@ -2,8 +2,9 @@
 
 ubuntu-release()
 {
-	# 18.04 and later support
-	if expr match "$1" ".*18..*" > /dev/null; then
+	# 18.04 and later need to use the alternative installer
+	# since the switch to subiquity
+	if [ ${1:0:2} -ge 18 ]; then
         rel=http://cdimage.ubuntu.com/releases/$1/release
 		echo $rel/$(curl --silent $rel/MD5SUMS | \grep -o 'ubuntu-.*-server-amd64.iso')
     else
